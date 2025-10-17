@@ -1,0 +1,64 @@
+import pandas as pd
+import requests
+from io import BytesIO
+from datetime import datetime, timedelta
+import os
+from openpyxl import load_workbook
+from openpyxl.styles import Font, Alignment
+from google.colab import files
+
+# Συγκεντρωτική λίστα για όλα τα δεδομένα
+all_data = []
+
+# Εύρος ημερομηνιών για το 2025 μέχρι 16 Οκτωβρίου
+start_date = datetime(2025, 1, 1)
+end_date = datetime(2025, 10, 16)
+
+# Βρόχος για κάθε ημέρα
+current_date = start_date
+while current_date <= end_date:
+    date_str = current_date.strftime('%Y%m%d')
+    url = f"https://www.enexgroup.gr/documents/20126/200106/{date_str}_EL-DAM_Results_EN_v01.xlsx"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            excel_data = BytesIO(response.content)
+            df = pd.read_excel(excel_data, sheet_name=0, engine="openpyxl")
+
+            # Μετατρέπουμε το πεδίο DELIVERY_MTU σε ώρα
+            df['Ώρα'] = pd.to_datetime(df['DELIVERY_MTU']).dt.hour
+
+            # Ομαδοποίηση και υπολογισμός μέσου όρου MCP
+            hourly_prices = df.groupby('Ώρα')['MCP'].mean().reset_index()
+            hourly_prices['Ημερομηνία'] = pd.to_datetime(df['DDAY'].iloc[0], format='%Y%m%d').date()
+            hourly_prices.rename(columns={'MCP': 'Τιμή €/MWh'}, inplace=True)
+
+            all_data.append(hourly_prices)
+            print(f"Η ημερομηνία {current_date.strftime('%Y-%m-%d')} προστέθηκε με επιτυχία.")
+        else:
+            print(f"Δεν βρέθηκε αρχείο για την ημερομηνία {date_str}")
+    except Exception as e:
+        print(f"Σφάλμα για την ημερομηνία {date_str}: {e}")
+    current_date += timedelta(days=1)
+
+# Συνένωση και αποθήκευση
+if all_data:
+    final_df = pd.concat(all_data, ignore_index=True)
+    excel_path = "mcp_2025_full.xlsx"
+    final_df.to_excel(excel_path, index=False)
+
+    # Μορφοποίηση Excel
+    wb = load_workbook(excel_path)
+    ws = wb.active
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal='center')
+    for row in ws.iter_rows(min_row=2, min_col=2, max_col=2):
+        for cell in row:
+            cell.number_format = "0.00"
+    wb.save(excel_path)
+
+    print("Το αρχείο δημιουργήθηκε με επιτυχία.")
+    files.download(excel_path)
+else:
+    print("Δεν βρέθηκαν δεδομένα για το 2025.")
