@@ -10,9 +10,9 @@ from google.colab import files
 # Συγκεντρωτική λίστα για όλα τα δεδομένα
 all_data = []
 
-# Εύρος ημερομηνιών για το 2025 μέχρι 16 Οκτωβρίου
+# Εύρος ημερομηνιών για το 2025 μέχρι 20 Οκτωβρίου
 start_date = datetime(2025, 1, 1)
-end_date = datetime(2025, 10, 16)
+end_date = datetime(2025, 10, 20)
 
 # Βρόχος για κάθε ημέρα
 current_date = start_date
@@ -24,6 +24,9 @@ while current_date <= end_date:
         if response.status_code == 200:
             excel_data = BytesIO(response.content)
             df = pd.read_excel(excel_data, sheet_name=0, engine="openpyxl")
+            
+            # Αφαίρεση διπλών χρονικών στιγμών (κρατάμε μία εγγραφή ανά 15λεπτο)
+            df_clean = df[["DELIVERY_MTU"]].drop_duplicates()
 
             # Μετατρέπουμε το πεδίο DELIVERY_MTU σε ώρα
             df['Ώρα'] = pd.to_datetime(df['DELIVERY_MTU']).dt.hour
