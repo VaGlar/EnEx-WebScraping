@@ -1,5 +1,5 @@
 
-# MCP Project - README
+# MCP - DAM | README
 
 Το project αφορά την αυτοματοποιημένη συλλογή, καταγραφή και έλεγχο των ωριαίων τιμών MCP από το DAM αρχείο της EnEx Group.
 
