@@ -1,0 +1,41 @@
+import pandas as pd
+from openpyxl import load_workbook
+from datetime import datetime, timedelta
+
+# Ορισμός διαδρομής αρχείου Excel
+excel_path = '/content/drive/MyDrive/mcp_2025_full.xlsx'
+
+# Φόρτωση αρχείου Excel
+wb = load_workbook(excel_path)
+ws = wb["Sheet1"]
+
+# Ανάγνωση δεδομένων από το φύλλο
+data = []
+for row in ws.iter_rows(min_row=2, values_only=True):
+    data.append(row[:3])
+
+# Δημιουργία DataFrame
+df = pd.DataFrame(data, columns=['Ώρα', 'MCP', 'Ημερομηνία'])
+
+# Μετατροπή ημερομηνίας σε τύπο datetime
+df['Ημερομηνία'] = pd.to_datetime(df['Ημερομηνία'], errors='coerce').dt.date
+
+# Ορισμός εύρους ημερομηνιών από 1/1/2025 μέχρι σήμερα
+start_date = datetime(2025, 1, 1).date()
+end_date = datetime.today().date()
+date_range = pd.date_range(start=start_date, end=end_date).date
+
+# Έλεγχος πληρότητας: κάθε ημερομηνία πρέπει να έχει 24 εγγραφές
+missing_or_incomplete = []
+for date in date_range:
+    count = df[df['Ημερομηνία'] == date].shape[0]
+    if count != 24:
+        missing_or_incomplete.append((date, count))
+
+# Εμφάνιση αποτελεσμάτων
+if missing_or_incomplete:
+    print("❌ Εντοπίστηκαν οι παρακάτω ημερομηνίες με λιγότερες από 24 εγγραφές ή καθόλου:")
+    for entry in missing_or_incomplete:
+        print(f"Ημερομηνία: {entry[0]} - Εγγραφές: {entry[1]}")
+else:
+    print("✅ Όλες οι ημερομηνίες από 1/1/2025 μέχρι σήμερα έχουν 24 εγγραφές.")
