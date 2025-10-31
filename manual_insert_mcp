@@ -1,0 +1,144 @@
+import pandas as pd
+from openpyxl import load_workbook
+from datetime import datetime, timedelta
+import requests
+from io import BytesIO
+from datetime import datetime, timedelta
+import os
+from openpyxl.styles import Font, Alignment
+from google.colab import files
+import logging
+import time
+from openpyxl.utils.dataframe import dataframe_to_rows
+from google.colab import drive
+drive.mount('/content/drive')
+
+excel_path = '/content/drive/MyDrive/mcp_2025_full.xlsx'
+
+def load_existing_data():
+    if not os.path.exists(excel_path):
+        print(f"❌ Error: The file '{excel_path}' was not found.")
+        print("Please make sure the file exists at this location in your Google Drive.")
+        return None, None, None # Return None for df, wb, and ws
+    try:
+        wb = load_workbook(excel_path)
+        ws = wb["Sheet1"]
+        data = []
+        # Start from min_row=2 to skip headers
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            # Ensure row has at least 3 columns before slicing
+            if len(row) >= 3:
+                data.append(row[:3])
+        df = pd.DataFrame(data, columns=['Ώρα', 'MCP', 'Ημερομηνία'])
+        df['Ημερομηνία'] = pd.to_datetime(df['Ημερομηνία'], errors='coerce').dt.date
+        return df, wb, ws
+    except Exception as e:
+        print(f"❌ Error loading existing data: {e}")
+        return None, None, None # Return None for df, wb, and ws
+
+def check_missing_dates(df):
+    if df is None: # Handle case where df is None
+        return []
+    start_date = datetime(2025, 1, 1).date()
+    end_date = datetime.today().date()
+    date_range = pd.date_range(start=start_date, end=end_date).date
+    missing_or_incomplete = []
+    for date in date_range:
+        count = df[df['Ημερομηνία'] == date].shape[0]
+        if count != 24:
+            missing_or_incomplete.append((date, count))
+    return missing_or_incomplete
+
+def fetch_mcp_for_date(date_str):
+    try:
+        target_date = datetime.strptime(date_str, '%Y%m%d').date()
+        url = f"https://www.enexgroup.gr/documents/20126/200106/{date_str}_EL-DAM_Results_EN_v01.xlsx"
+        response = requests.get(url)
+        if response.status_code == 200:
+            excel_data = BytesIO(response.content)
+            dam_df = pd.read_excel(excel_data, engine="openpyxl")
+            clean_df = dam_df[['DELIVERY_MTU', 'MCP']].drop_duplicates(subset=['DELIVERY_MTU'])
+            clean_df['Ώρα'] = pd.to_datetime(clean_df['DELIVERY_MTU']).dt.hour
+            hourly_mcp = clean_df.groupby('Ώρα')['MCP'].mean().reset_index()
+            hourly_mcp['Ημερομηνία'] = target_date
+            hourly_mcp = hourly_mcp[['Ώρα', 'MCP', 'Ημερομηνία']]
+            print(f"✅ MCP για {target_date} ελήφθησαν επιτυχώς.")
+            return hourly_mcp
+        else:
+            print(f"❌ Δεν βρέθηκε αρχείο DAM για {date_str} (status code {response.status_code})")
+    except Exception as e:
+        print(f"❌ Σφάλμα για {date_str}: {e}")
+    return None
+
+def update_excel(df, new_entries, ws, wb):
+    # Handle case where df is None (file didn't exist initially)
+    if df is None:
+        full_df = pd.concat(new_entries, ignore_index=True)
+    else:
+        full_df = pd.concat([df] + new_entries, ignore_index=True)
+
+    full_df['Ημερομηνία'] = pd.to_datetime(full_df['Ημερομηνία'], errors='coerce')
+    full_df = full_df.sort_values(by=['Ημερομηνία', 'Ώρα'])
+
+    # If wb and ws are None, create a new workbook and worksheet
+    if wb is None or ws is None:
+        from openpyxl import Workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Sheet1" # Set default sheet name
+
+    # Clear existing data and write the full DataFrame
+    ws.delete_rows(1, ws.max_row + 1) # Delete all rows including potential headers
+    for r_idx, r in enumerate(dataframe_to_rows(full_df, index=False, header=True)): # Write header row
+        for c_idx, cell in enumerate(r):
+            ws.cell(row=r_idx+1, column=c_idx+1, value=cell)
+
+    wb.save(excel_path)
+    print("✅ Το αρχείο ενημερώθηκε με τις νέες τιμές MCP.")
+
+# --- Κύρια ροή ---
+while True:
+    df, wb, ws = load_existing_data()
+
+    # If df is None, the file didn't exist or there was an error loading it.
+    # We can still proceed to fetch new data and create the file.
+    if df is not None:
+        missing = check_missing_dates(df)
+        if missing:
+            print("❌ Ελλιπείς ή λείπουσες ημερομηνίες MCP:")
+            for entry in missing:
+                print(f"Ημερομηνία: {entry[0]} - Εγγραφές: {entry[1]}")
+        else:
+            print("✅ Όλες οι ημερομηνίες έχουν 24 εγγραφές.")
+    else:
+        print("Starting with an empty dataset as the existing file was not found or could not be loaded.")
+        missing = [] # No missing dates if starting empty
+
+    while True:
+        date_str = input("📅 Add new date (μορφή YYYYMMDD) ή Enter για έξοδο: ").strip()
+        if date_str == "":
+            print("👋 Τερματισμός script.")
+            break
+
+        result = fetch_mcp_for_date(date_str)
+        if result is not None:
+            # Pass wb and ws even if they are None; update_excel will handle creating a new workbook
+            update_excel(df, [result], ws, wb)
+            # After updating, reload the data to include the new entries and check for missing dates again
+            df, wb, ws = load_existing_data()
+            if df is not None:
+                print("✅ Ημερομηνία προστέθηκε. Μπορείς να συνεχίσεις.")
+                missing = check_missing_dates(df)
+                if missing:
+                    print("❌ Ελλιπείς ή λείπουσες ημερομηνίες MCP:")
+                    for entry in missing:
+                        print(f"Ημερομηνία: {entry[0]} - Εγγραφές: {entry[1]}")
+                else:
+                    print("✅ Όλες οι ημερομηνίες έχουν 24 εγγραφές.")
+            else:
+                 print("⚠️ Failed to reload data after adding a new date.")
+
+        else:
+            print("⚠️ Δεν προστέθηκε η ημερομηνία λόγω σφάλματος ή μη διαθέσιμου αρχείου.")
+
+    break  # Έξοδος από το εξωτερικό loop μετά την εισαγωγή
