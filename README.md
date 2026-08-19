@@ -16,14 +16,17 @@ enex_dam/
   dam.py            # download + parse ενός ημερήσιου DAM αρχείου
   storage.py        # load/merge/save του dataset ως CSV
   completeness.py   # εντοπισμός ελλιπών/λειπόντων ημερομηνιών
+  economics.py       # υπολογισμός μηνιαίων κερδών μηχανής (βλ. παρακάτω)
   logging_config.py # κοινή ρύθμιση logging (αρχείο + κονσόλα)
   scripts/
     bulk_download.py  # μαζική λήψη για εύρος ημερομηνιών
     daily_update.py   # λήψη μίας ημέρας (default: σήμερα)
     check_missing.py  # έλεγχος πληρότητας dataset
     manual_insert.py  # διαδραστική εισαγωγή συγκεκριμένων ημερομηνιών
+    compute_profit.py # υπολογισμός & εκτύπωση μηνιαίων κερδών
 data/
-  mcp_full.csv      # το dataset (date, hour, mcp), ενημερώνεται αυτόματα
+  mcp_full.csv       # το dataset (date, hour, mcp), ενημερώνεται αυτόματα
+  monthly_prices.csv # μηνιαίες τιμές ΤΑ/ΕΤΑ/TTF (χειροκίνητη ενημέρωση)
 tests/               # pytest unit tests (χωρίς πραγματικά network calls)
 .github/workflows/
   daily_update.yml   # καθημερινό cron που τρέχει το daily_update + commit
@@ -46,6 +49,9 @@ python -m enex_dam.scripts.check_missing
 
 # Χειροκίνητη εισαγωγή συγκεκριμένων ημερομηνιών
 python -m enex_dam.scripts.manual_insert
+
+# Υπολογισμός μηνιαίων κερδών μηχανής
+python -m enex_dam.scripts.compute_profit
 ```
 
 Για development/tests:
@@ -73,6 +79,31 @@ workflow**, με προαιρετικά πεδία `start`/`end` (προεπιλ
 Τα logs γράφονται τοπικά στο `logs/mcp_log.txt` (δεν γίνονται commit στο
 repo — βλέπε ιστορικό εκτελέσεων στο GitHub Actions run log).
 
+## 💶 Μηνιαία κέρδη μηχανής
+
+Η εγκατάσταση είναι μονάδα φυσικού αερίου 1 MW, βαθμού απόδοσης 43%
+(`PLANT_CAPACITY_MW`, `PLANT_EFFICIENCY` στο `enex_dam/config.py`). Ανά ώρα:
+
+```
+margin (€/MWh ρεύματος) = MCP + ΤΑ - ΕΤΑ - (TTF / 0,43)
+```
+
+όπου ΤΑ (Τιμή Αναφοράς), ΕΤΑ (Ειδικό Τέλος Ανανεώσιμων) και TTF (τιμή φυσικού
+αερίου, €/MWh αερίου) είναι μηνιαίες σταθερές — συμπληρώνονται χειροκίνητα στο
+`data/monthly_prices.csv` (στήλες `month,ta,eta,ttf`). Το TTF διαιρείται με
+την απόδοση ώστε να ανάγεται σε κόστος καυσίμου ανά MWh ρεύματος.
+
+Το μηνιαίο κέρδος πολλαπλασιάζει τον μέσο όρο του margin επί τις ώρες του
+μήνα, την ισχύ (1 MW) και έναν συντελεστή διαθεσιμότητας 350/365 (η μηχανή
+προϋπολογίζεται να λειτουργεί 24ω/ημέρα, 350 μέρες/έτος — `AVAILABILITY_FACTOR`
+στο config.py). Δεν αφαιρείται άλλο λειτουργικό κόστος (OPEX) προς το παρόν,
+άρα «κέρδη μηχανής» = τα έσοδα από αυτό το spread.
+
+`python -m enex_dam.scripts.compute_profit` τυπώνει τον πίνακα μηνιαίων
+κερδών (ώρες, μέσο margin €/MWh, κέρδος €) και προαιρετικά τον αποθηκεύει με
+`--out FILE.csv`. Αν λείπει κάποιος μήνας από το `monthly_prices.csv`, το
+script σταματά με σαφές μήνυμα σφάλματος αντί να υπολογίσει λάθος νούμερο.
+
 ## 🗓️ Πληρότητα δεδομένων
 
 Κάθε ημερομηνία αναμένεται να έχει 24 ωριαίες εγγραφές, με γνωστές εξαιρέσεις
@@ -87,6 +118,7 @@ repo — βλέπε ιστορικό εκτελέσεων στο GitHub Actions 
 - [x] Πλήρες logging (επιτυχία/σφάλμα, όχι hardcoded μηνύματα)
 - [x] Tests χωρίς πραγματικά network calls (mocked HTTP)
 - [x] Αυτοματοποίηση μέσω GitHub Actions (χωρίς Google Drive)
+- [x] Υπολογισμός μηνιαίων κερδών μηχανής (MCP+ΤΑ-ΕΤΑ-TTF/απόδοση)
 - [ ] Οπτικοποίηση δεδομένων MCP (π.χ. γράφημα ιστορικού ανά ημέρα/ώρα)
 - [ ] Ανάλυση στατιστικών (μέσος όρος/διακύμανση ανά μήνα, peak/off-peak)
 - [ ] Ειδοποιήσεις (π.χ. Slack/email) σε περίπτωση σφάλματος ή ελλείψεων
