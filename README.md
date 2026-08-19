@@ -1,39 +1,87 @@
+# EnEx DAM MCP Collector
 
-# MCP - DAM | README
+Αυτοματοποιημένη συλλογή, καταγραφή και έλεγχος πληρότητας των ωριαίων τιμών
+MCP (Marginal Clearing Price) από τα ημερήσια DAM (Day-Ahead Market) αρχεία
+της EnEx Group.
 
-Το project αφορά την αυτοματοποιημένη συλλογή, καταγραφή και έλεγχο των ωριαίων τιμών MCP από το DAM αρχείο της EnEx Group.
+Το project ξεκίνησε ως σύνολο Google Colab notebooks και έχει μετατραπεί σε
+ένα κανονικό Python πακέτο (`enex_dam`) που τρέχει είτε τοπικά είτε μέσω
+GitHub Actions, χωρίς εξάρτηση από Google Colab/Drive.
 
-## 📁 Αρχεία
+## 📁 Δομή
 
-### 1. `all-data`
-Περιέχει όλα τα δεδομένα MCP από 1/1/2025 μέχρι την τελευταία διαθέσιμη ημερομηνία. Δημιουργήθηκε με μαζική λήψη και καταγραφή των τιμών MCP.
+```
+enex_dam/
+  config.py        # URL template, paths, retry/backoff, γνωστές εξαιρέσεις (DST)
+  dam.py            # download + parse ενός ημερήσιου DAM αρχείου
+  storage.py        # load/merge/save του dataset ως CSV
+  completeness.py   # εντοπισμός ελλιπών/λειπόντων ημερομηνιών
+  logging_config.py # κοινή ρύθμιση logging (αρχείο + κονσόλα)
+  scripts/
+    bulk_download.py  # μαζική λήψη για εύρος ημερομηνιών
+    daily_update.py   # λήψη μίας ημέρας (default: σήμερα)
+    check_missing.py  # έλεγχος πληρότητας dataset
+    manual_insert.py  # διαδραστική εισαγωγή συγκεκριμένων ημερομηνιών
+data/
+  mcp_full.csv      # το dataset (date, hour, mcp), ενημερώνεται αυτόματα
+tests/               # pytest unit tests (χωρίς πραγματικά network calls)
+.github/workflows/
+  daily_update.yml   # καθημερινό cron που τρέχει το daily_update + commit
+```
 
-### 2. `dam-mcp`
-Καθημερινό script που:
-- Κατεβάζει το DAM αρχείο της ημέρας
-- Εξάγει τις ωριαίες τιμές MCP
-- Ελέγχει αν υπάρχουν ήδη στο Excel
-- Προσθέτει τις νέες τιμές
-- Καταγράφει τις ενέργειες σε αρχείο log
+## ▶️ Χρήση
 
-### 3. `check missing values`
-Script που:
-- Ελέγχει αν υπάρχουν όλες οι ημερομηνίες από 1/1/2025 μέχρι σήμερα
-- Ελέγχει αν κάθε ημερομηνία έχει 24 εγγραφές (εκτός εξαιρέσεων όπως 30/3)
-- Καταγράφει τις ελλείψεις στο log
+```bash
+pip install -r requirements.txt
 
-## 📌 Οδηγίες Χρήσης
-- Το αρχείο Excel πρέπει να βρίσκεται στο Google Drive (`MyDrive/mcp_2025_full.xlsx`)
-- Το script `dam-mcp` εκτελείται καθημερινά αυτόματα στις 16.00
-- Το `check missing values` μπορεί να εκτελείται περιοδικά για έλεγχο πληρότητας
+# Μαζική αρχική λήψη (backfill)
+python -m enex_dam.scripts.bulk_download --start 2025-01-01 --end 2025-10-20
+
+# Καθημερινή ενημέρωση (σημερινή ημερομηνία)
+python -m enex_dam.scripts.daily_update
+
+# Έλεγχος πληρότητας
+python -m enex_dam.scripts.check_missing
+
+# Χειροκίνητη εισαγωγή συγκεκριμένων ημερομηνιών
+python -m enex_dam.scripts.manual_insert
+```
+
+Για development/tests:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+## 🤖 Αυτοματοποίηση
+
+Το workflow `.github/workflows/daily_update.yml` τρέχει καθημερινά (cron,
+ώρα UTC — βλ. σχόλιο στο αρχείο για τη μετατροπή σε ώρα Ελλάδας), κατεβάζει
+τις τιμές της ημέρας, ελέγχει πληρότητα, και κάνει commit το ενημερωμένο
+`data/mcp_full.csv` πίσω στο repo. Μπορεί επίσης να τρέξει χειροκίνητα από
+το tab **Actions** (`workflow_dispatch`).
 
 ## 📄 Logging
-Όλες οι ενέργειες και σφάλματα καταγράφονται στο αρχείο:
-`MyDrive/mcp_logs/mcp_log.txt`
 
-## ✅ Επεκτάσεις
-- Οπτικοποίηση δεδομένων MCP
-- Ανάλυση στατιστικών
-- Ειδοποιήσεις σε περίπτωση σφάλματος ή ελλείψεων
-- Αρχειοθέτηση DAM αρχείων
+Τα logs γράφονται τοπικά στο `logs/mcp_log.txt` (δεν γίνονται commit στο
+repo — βλέπε ιστορικό εκτελέσεων στο GitHub Actions run log).
 
+## 🗓️ Πληρότητα δεδομένων
+
+Κάθε ημερομηνία αναμένεται να έχει 24 ωριαίες εγγραφές, με γνωστές εξαιρέσεις
+τις ημέρες αλλαγής ώρας (23 εγγραφές την ημέρα εαρινής αλλαγής, 25 την
+ημέρα φθινοπωρινής) — ορίζονται στο `enex_dam/config.py`
+(`EXPECTED_HOURLY_RECORD_EXCEPTIONS`).
+
+## ✅ Δυνατότητες / πιθανές επεκτάσεις
+
+- [x] Ενιαία, επαναχρησιμοποιήσιμη λογική download/parse (χωρίς duplication)
+- [x] Retry με backoff + timeout σε κάθε HTTP αίτημα
+- [x] Πλήρες logging (επιτυχία/σφάλμα, όχι hardcoded μηνύματα)
+- [x] Tests χωρίς πραγματικά network calls (mocked HTTP)
+- [x] Αυτοματοποίηση μέσω GitHub Actions (χωρίς Google Drive)
+- [ ] Οπτικοποίηση δεδομένων MCP (π.χ. γράφημα ιστορικού ανά ημέρα/ώρα)
+- [ ] Ανάλυση στατιστικών (μέσος όρος/διακύμανση ανά μήνα, peak/off-peak)
+- [ ] Ειδοποιήσεις (π.χ. Slack/email) σε περίπτωση σφάλματος ή ελλείψεων
+- [ ] Αρχειοθέτηση των ωμών DAM xlsx αρχείων (όχι μόνο των ωριαίων μέσων όρων)
