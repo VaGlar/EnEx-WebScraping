@@ -9,7 +9,7 @@ DAM_URL_TEMPLATE = (
 )
 
 # Earliest delivery day covered by this dataset.
-DATA_START_DATE = "2025-01-01"
+DATA_START_DATE = "2026-01-01"
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = REPO_ROOT / "data"
@@ -30,4 +30,6 @@ BULK_REQUEST_DELAY_SECONDS = 1.0
 EXPECTED_HOURLY_RECORD_EXCEPTIONS = {
     "2025-03-30": 23,  # DST spring-forward: clocks jump 03:00 -> 04:00
     "2025-10-26": 25,  # DST autumn-back: hour 03:00-04:00 repeats
+    "2026-03-29": 23,  # DST spring-forward: clocks jump 03:00 -> 04:00
+    "2026-10-25": 25,  # DST autumn-back: hour 03:00-04:00 repeats
 }
