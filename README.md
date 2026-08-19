@@ -27,6 +27,7 @@ data/
 tests/               # pytest unit tests (χωρίς πραγματικά network calls)
 .github/workflows/
   daily_update.yml   # καθημερινό cron που τρέχει το daily_update + commit
+  backfill.yml       # χειροκίνητο (workflow_dispatch) backfill για εύρος ημερομηνιών
 ```
 
 ## ▶️ Χρήση
@@ -34,8 +35,8 @@ tests/               # pytest unit tests (χωρίς πραγματικά networ
 ```bash
 pip install -r requirements.txt
 
-# Μαζική αρχική λήψη (backfill)
-python -m enex_dam.scripts.bulk_download --start 2025-01-01 --end 2025-10-20
+# Μαζική αρχική λήψη (backfill) — προεπιλογή: DATA_START_DATE έως σήμερα
+python -m enex_dam.scripts.bulk_download --start 2026-01-01 --end 2026-08-19
 
 # Καθημερινή ενημέρωση (σημερινή ημερομηνία)
 python -m enex_dam.scripts.daily_update
@@ -61,6 +62,11 @@ pytest
 τις τιμές της ημέρας, ελέγχει πληρότητα, και κάνει commit το ενημερωμένο
 `data/mcp_full.csv` πίσω στο repo. Μπορεί επίσης να τρέξει χειροκίνητα από
 το tab **Actions** (`workflow_dispatch`).
+
+Για το αρχικό ιστορικό backfill (πριν ενεργοποιηθεί το daily cron) υπάρχει
+ξεχωριστό workflow `backfill.yml`: **Actions → Backfill DAM MCP data → Run
+workflow**, με προαιρετικά πεδία `start`/`end` (προεπιλογή: `2026-01-01` έως
+σήμερα). Τρέχει στο runner του GitHub, οπότε δεν χρειάζεται τίποτα τοπικά.
 
 ## 📄 Logging
 
