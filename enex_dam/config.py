@@ -14,8 +14,18 @@ DATA_START_DATE = "2026-01-01"
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = REPO_ROOT / "data"
 DATA_FILE = DATA_DIR / "mcp_full.csv"
+MONTHLY_PRICES_FILE = DATA_DIR / "monthly_prices.csv"
 LOG_DIR = REPO_ROOT / "logs"
 LOG_FILE = LOG_DIR / "mcp_log.txt"
+
+# --- Plant economics (1 MW gas-fired unit) ---
+PLANT_CAPACITY_MW = 1.0
+PLANT_EFFICIENCY = 0.43  # MWh electricity per MWh natural gas burned
+# Assumed operating pattern: 24h/day, 350 days/year (the remaining ~15
+# days/year are unplanned/maintenance downtime, not modelled hour-by-hour).
+ANNUAL_OPERATING_DAYS = 350
+CALENDAR_DAYS_PER_YEAR = 365
+AVAILABILITY_FACTOR = ANNUAL_OPERATING_DAYS / CALENDAR_DAYS_PER_YEAR
 
 # HTTP behaviour
 REQUEST_TIMEOUT_SECONDS = 30
