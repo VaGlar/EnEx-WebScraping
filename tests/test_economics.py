@@ -41,6 +41,17 @@ def test_compute_monthly_profit_raises_on_missing_month():
         compute_monthly_profit(mcp_df, monthly_prices)
 
 
+def test_compute_monthly_profit_raises_on_incomplete_month():
+    mcp_df = pd.DataFrame({"date": ["2026-01-01"], "hour": [0], "mcp": [100.0]})
+    # Row exists for the month, but eta is blank (NaN) - should still be caught.
+    monthly_prices = pd.DataFrame(
+        {"month": ["2026-01"], "ta": [10.0], "eta": [None], "ttf": [30.0]}
+    )
+
+    with pytest.raises(MissingMonthlyPrices, match="eta"):
+        compute_monthly_profit(mcp_df, monthly_prices)
+
+
 def test_compute_monthly_profit_empty_input():
     mcp_df = pd.DataFrame(columns=["date", "hour", "mcp"])
     monthly_prices = pd.DataFrame(columns=["month", "ta", "eta", "ttf"])

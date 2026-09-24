@@ -66,6 +66,18 @@ def compute_monthly_profit(mcp_df: pd.DataFrame, monthly_prices: pd.DataFrame) -
             f"Add them to {MONTHLY_PRICES_FILE}."
         )
 
+    relevant_prices = monthly_prices[monthly_prices["month"].isin(data_months)]
+    incomplete = relevant_prices[relevant_prices[["ta", "eta", "ttf"]].isna().any(axis=1)]
+    if not incomplete.empty:
+        details = []
+        for _, row in incomplete.iterrows():
+            blank_fields = [c for c in ("ta", "eta", "ttf") if pd.isna(row[c])]
+            details.append(f"{row['month']} (missing: {', '.join(blank_fields)})")
+        raise MissingMonthlyPrices(
+            f"Incomplete TA/ETA/TTF prices for month(s): {'; '.join(details)}. "
+            f"Fill them in {MONTHLY_PRICES_FILE}."
+        )
+
     merged = df.merge(monthly_prices, on="month", how="left")
     merged["margin"] = (
         merged["mcp"] + merged["ta"] - merged["eta"] - merged["ttf"] / PLANT_EFFICIENCY
