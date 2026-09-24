@@ -10,7 +10,7 @@
   --surface-1: #fcfcfb; --page: #f9f9f7;
   --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
   --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
-  --series-1: #2a78d6; --series-2: #eb6834;
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100; --series-5: #e87ba4;
 }
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) .viz-root {
@@ -18,7 +18,7 @@
     --surface-1: #1a1a19; --page: #0d0d0d;
     --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
     --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
-    --series-1: #3987e5; --series-2: #d95926;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; --series-5: #d55181;
   }
 }
 :root[data-theme="dark"] .viz-root {
@@ -26,7 +26,7 @@
   --surface-1: #1a1a19; --page: #0d0d0d;
   --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
   --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
-  --series-1: #3987e5; --series-2: #d95926;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; --series-5: #d55181;
 }
 .viz-root {
   background: var(--page);
@@ -68,6 +68,17 @@
 .viz-table th:first-child, .viz-table td:first-child { text-align: left; font-variant-numeric: normal; }
 .viz-empty { color: var(--text-muted); font-size: 13px; padding: 24px 0; text-align: center; }
 .viz-footer { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+.viz-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 4px; }
+.viz-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+.viz-legend-key { width: 12px; height: 2px; border-radius: 1px; display: inline-block; }
+.viz-scatter-dot { fill: var(--series-1); stroke: var(--surface-1); stroke-width: 2; cursor: pointer; }
+.viz-scatter-dot:hover, .viz-scatter-dot:focus { fill: var(--series-2); outline: none; }
+.viz-trendline { stroke: var(--text-muted); stroke-width: 1.5; stroke-dasharray: 5,4; }
+.viz-r-label { fill: var(--text-secondary); font-size: 12px; font-weight: 600; }
+.viz-summary-table td:first-child, .viz-summary-table th:first-child { text-align: left; }
+.viz-section-title { font-size: 18px; font-weight: 600; margin: 8px 0 12px; }
+.viz-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.viz-summary-grid .viz-table { margin-top: 0; }
 [hidden] { display: none !important; }
 </style>
 </head>
@@ -76,7 +87,7 @@
   <div class="viz-shell">
     <div class="viz-header">
       <h1 class="viz-title">EnEx DAM MCP — Dashboard</h1>
-      <div class="viz-updated">Ενημερώθηκε: 2026-09-24 14:16 UTC</div>
+      <div class="viz-updated">Ενημερώθηκε: 2026-09-24 14:35 UTC</div>
     </div>
 
     <div class="viz-stats">
@@ -88,13 +99,13 @@
 
 <div class="viz-stat-tile">
   <div class="viz-stat-label">Συνολικό κέρδος (πλήρεις μήνες)</div>
-  <div class="viz-stat-value">364,843 €</div>
-  <div class="viz-stat-sub">7 μήνες</div>
+  <div class="viz-stat-value">411,562 €</div>
+  <div class="viz-stat-sub">8 μήνες</div>
 </div>
 
 <div class="viz-stat-tile">
   <div class="viz-stat-label">Μέσο margin</div>
-  <div class="viz-stat-value">74.83 €/MWh</div>
+  <div class="viz-stat-value">73.94 €/MWh</div>
   <div class="viz-stat-sub">1 MW, 43% απόδοση</div>
 </div>
 
@@ -139,13 +150,67 @@
   <svg viewBox="0 0 880 260" class="viz-svg" role="img" aria-label="Μηνιαίο κέρδος μηχανής">
     <line class="viz-grid" x1="64" y1="16.0" x2="864" y2="16.0" /><text class="viz-axis-label" x="56" y="20.0" text-anchor="end">69,538</text><line class="viz-grid" x1="64" y1="70.0" x2="864" y2="70.0" /><text class="viz-axis-label" x="56" y="74.0" text-anchor="end">52,154</text><line class="viz-grid" x1="64" y1="124.0" x2="864" y2="124.0" /><text class="viz-axis-label" x="56" y="128.0" text-anchor="end">34,769</text><line class="viz-grid" x1="64" y1="178.0" x2="864" y2="178.0" /><text class="viz-axis-label" x="56" y="182.0" text-anchor="end">17,385</text><line class="viz-grid" x1="64" y1="232.0" x2="864" y2="232.0" /><text class="viz-axis-label" x="56" y="236.0" text-anchor="end">0</text>
     <line class="viz-baseline" x1="64" y1="232.0" x2="864" y2="232.0" />
-    <rect class="viz-bar" x="109.1" y="44.2" width="24.0" height="187.8" rx="4" data-label="Ιαν 26" data-value="60468.08" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="121.1" y="254" text-anchor="middle">Ιαν 26</text><rect class="viz-bar" x="223.4" y="70.6" width="24.0" height="161.4" rx="4" data-label="Φεβ 26" data-value="51966.72" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="235.4" y="254" text-anchor="middle">Φεβ 26</text><rect class="viz-bar" x="337.7" y="65.8" width="24.0" height="166.2" rx="4" data-label="Μαρ 26" data-value="53497.55" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="349.7" y="254" text-anchor="middle">Μαρ 26</text><rect class="viz-bar" x="452.0" y="85.2" width="24.0" height="146.8" rx="4" data-label="Απρ 26" data-value="47262.70" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="464.0" y="254" text-anchor="middle">Απρ 26</text><rect class="viz-bar" x="566.3" y="78.8" width="24.0" height="153.2" rx="4" data-label="Μάι 26" data-value="49325.41" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="578.3" y="254" text-anchor="middle">Μάι 26</text><rect class="viz-bar" x="680.6" y="78.1" width="24.0" height="153.9" rx="4" data-label="Ιουν 26" data-value="49548.02" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="692.6" y="254" text-anchor="middle">Ιουν 26</text><rect class="viz-bar" x="794.9" y="68.1" width="24.0" height="163.9" rx="4" data-label="Ιουλ 26" data-value="52774.61" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="806.9" y="254" text-anchor="middle">Ιουλ 26</text>
+    <rect class="viz-bar" x="102.0" y="44.2" width="24.0" height="187.8" rx="4" data-label="Ιαν 26" data-value="60468.08" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="114.0" y="254" text-anchor="middle">Ιαν 26</text><rect class="viz-bar" x="202.0" y="70.6" width="24.0" height="161.4" rx="4" data-label="Φεβ 26" data-value="51966.72" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="214.0" y="254" text-anchor="middle">Φεβ 26</text><rect class="viz-bar" x="302.0" y="65.8" width="24.0" height="166.2" rx="4" data-label="Μαρ 26" data-value="53497.55" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="314.0" y="254" text-anchor="middle">Μαρ 26</text><rect class="viz-bar" x="402.0" y="85.2" width="24.0" height="146.8" rx="4" data-label="Απρ 26" data-value="47262.70" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="414.0" y="254" text-anchor="middle">Απρ 26</text><rect class="viz-bar" x="502.0" y="78.8" width="24.0" height="153.2" rx="4" data-label="Μάι 26" data-value="49325.41" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="514.0" y="254" text-anchor="middle">Μάι 26</text><rect class="viz-bar" x="602.0" y="78.1" width="24.0" height="153.9" rx="4" data-label="Ιουν 26" data-value="49548.02" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="614.0" y="254" text-anchor="middle">Ιουν 26</text><rect class="viz-bar" x="702.0" y="68.1" width="24.0" height="163.9" rx="4" data-label="Ιουλ 26" data-value="52774.61" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="714.0" y="254" text-anchor="middle">Ιουλ 26</text><rect class="viz-bar" x="802.0" y="86.9" width="24.0" height="145.1" rx="4" data-label="Αυγ 26" data-value="46718.53" data-unit="€" tabindex="0" /><text class="viz-axis-label" x="814.0" y="254" text-anchor="middle">Αυγ 26</text>
   </svg>
   <div class="viz-tooltip" hidden></div>
 </div>
 
-      <table class="viz-table" hidden><thead><tr><th>Μήνας</th><th>Ώρες</th><th>Μέσο margin (€/MWh)</th><th>Κέρδος (€)</th></tr></thead><tbody><tr><td>Ιαν 26</td><td>744</td><td>84.76</td><td>60,468</td></tr><tr><td>Φεβ 26</td><td>672</td><td>80.65</td><td>51,967</td></tr><tr><td>Μαρ 26</td><td>743</td><td>75.09</td><td>53,498</td></tr><tr><td>Απρ 26</td><td>720</td><td>68.46</td><td>47,263</td></tr><tr><td>Μάι 26</td><td>744</td><td>69.14</td><td>49,325</td></tr><tr><td>Ιουν 26</td><td>720</td><td>71.77</td><td>49,548</td></tr><tr><td>Ιουλ 26</td><td>744</td><td>73.97</td><td>52,775</td></tr></tbody></table>
-      <p class="viz-footer">Μήνες εκτός γραφήματος κέρδους (ελλιπείς τιμές ΤΑ/ΕΤΑ/TTF): <ul><li>2026-08 (missing: ta)</li><li>2026-09 (missing: ta, eta)</li></ul></p>
+      <table class="viz-table" hidden><thead><tr><th>Μήνας</th><th>Ώρες</th><th>Μέσο margin (€/MWh)</th><th>Κέρδος (€)</th></tr></thead><tbody><tr><td>Ιαν 26</td><td>744</td><td>84.76</td><td>60,468</td></tr><tr><td>Φεβ 26</td><td>672</td><td>80.65</td><td>51,967</td></tr><tr><td>Μαρ 26</td><td>743</td><td>75.09</td><td>53,498</td></tr><tr><td>Απρ 26</td><td>720</td><td>68.46</td><td>47,263</td></tr><tr><td>Μάι 26</td><td>744</td><td>69.14</td><td>49,325</td></tr><tr><td>Ιουν 26</td><td>720</td><td>71.77</td><td>49,548</td></tr><tr><td>Ιουλ 26</td><td>744</td><td>73.97</td><td>52,775</td></tr><tr><td>Αυγ 26</td><td>720</td><td>67.67</td><td>46,719</td></tr></tbody></table>
+      <p class="viz-footer">Μήνες εκτός γραφήματος κέρδους (ελλιπείς τιμές ΤΑ/ΕΤΑ/TTF): <ul><li>2026-09 (missing: ta, eta)</li></ul></p>
+    </div>
+
+    <h2 class="viz-section-title">Ανάλυση (8 πλήρεις μήνες)</h2>
+
+    <div class="viz-card">
+      <div class="viz-card-head">
+        <h2 class="viz-card-title">Τάσεις (δείκτης 100 = πρώτος μήνας)</h2>
+        <button class="viz-toggle" type="button">Πίνακας</button>
+      </div>
+      
+<div class="viz-chart-wrap" data-chart="multiline">
+  <div class="viz-legend"><span class="viz-legend-item"><span class="viz-legend-key" style="background:var(--series-1)"></span>MCP</span><span class="viz-legend-item"><span class="viz-legend-key" style="background:var(--series-2)"></span>ΤΑ</span><span class="viz-legend-item"><span class="viz-legend-key" style="background:var(--series-3)"></span>ΕΤΑ</span><span class="viz-legend-item"><span class="viz-legend-key" style="background:var(--series-4)"></span>TTF</span><span class="viz-legend-item"><span class="viz-legend-key" style="background:var(--series-5)"></span>Κέρδος</span></div>
+  <svg viewBox="0 0 880 300" class="viz-svg" role="img" aria-label="Δείκτης 100 = πρώτος μήνας, MCP, ΤΑ, ΕΤΑ, TTF, Κέρδος">
+    <line class="viz-grid" x1="48" y1="16.0" x2="864" y2="16.0" /><text class="viz-axis-label" x="40" y="20.0" text-anchor="end">208</text><line class="viz-grid" x1="48" y1="76.0" x2="864" y2="76.0" /><text class="viz-axis-label" x="40" y="80.0" text-anchor="end">171</text><line class="viz-grid" x1="48" y1="136.0" x2="864" y2="136.0" /><text class="viz-axis-label" x="40" y="140.0" text-anchor="end">134</text><line class="viz-grid" x1="48" y1="196.0" x2="864" y2="196.0" /><text class="viz-axis-label" x="40" y="200.0" text-anchor="end">97</text><line class="viz-grid" x1="48" y1="256.0" x2="864" y2="256.0" /><text class="viz-axis-label" x="40" y="260.0" text-anchor="end">60</text><line class="viz-baseline" x1="48" y1="190.8" x2="864" y2="190.8" stroke-dasharray="3,3" />
+    <path class="viz-line" style="stroke:var(--series-1)" d="M 48.0,190.8 L 164.6,236.0 L 281.1,211.2 L 397.7,220.5 L 514.3,220.1 L 630.9,214.3 L 747.4,188.9 L 864.0,155.9" /><circle class="viz-end-dot" style="fill:var(--series-1)" cx="864.0" cy="155.9" r="4" /><path class="viz-line" style="stroke:var(--series-2)" d="M 48.0,190.8 L 164.6,176.6 L 281.1,181.4 L 397.7,137.1 L 514.3,155.1 L 630.9,149.4 L 747.4,154.9 L 864.0,135.6" /><circle class="viz-end-dot" style="fill:var(--series-2)" cx="864.0" cy="135.6" r="4" /><path class="viz-line" style="stroke:var(--series-3)" d="M 48.0,190.8 L 164.6,230.1 L 281.1,199.0 L 397.7,205.2 L 514.3,203.9 L 630.9,202.4 L 747.4,182.3 L 864.0,145.5" /><circle class="viz-end-dot" style="fill:var(--series-3)" cx="864.0" cy="145.5" r="4" /><path class="viz-line" style="stroke:var(--series-4)" d="M 48.0,190.8 L 164.6,151.9 L 281.1,163.3 L 397.7,43.6 L 514.3,90.7 L 630.9,76.3 L 747.4,88.4 L 864.0,36.0" /><circle class="viz-end-dot" style="fill:var(--series-4)" cx="864.0" cy="36.0" r="4" /><path class="viz-line" style="stroke:var(--series-5)" d="M 48.0,190.8 L 164.6,213.6 L 281.1,209.5 L 397.7,226.2 L 514.3,220.6 L 630.9,220.0 L 747.4,211.4 L 864.0,227.6" /><circle class="viz-end-dot" style="fill:var(--series-5)" cx="864.0" cy="227.6" r="4" />
+    <text class="viz-axis-label" x="48.0" y="276" text-anchor="start">Ιαν 26</text><text class="viz-axis-label" x="164.6" y="276" text-anchor="middle">Φεβ 26</text><text class="viz-axis-label" x="281.1" y="276" text-anchor="middle">Μαρ 26</text><text class="viz-axis-label" x="397.7" y="276" text-anchor="middle">Απρ 26</text><text class="viz-axis-label" x="514.3" y="276" text-anchor="middle">Μάι 26</text><text class="viz-axis-label" x="630.9" y="276" text-anchor="middle">Ιουν 26</text><text class="viz-axis-label" x="747.4" y="276" text-anchor="middle">Ιουλ 26</text><text class="viz-axis-label" x="864.0" y="276" text-anchor="end">Αυγ 26</text>
+    <rect class="viz-hit-rect" x="48" y="16" width="816" height="240"
+          data-points='[{"x": 48.0, "label": "\u0399\u03b1\u03bd 26", "MCP": 100.0, "\u03a4\u0391": 100.0, "\u0395\u03a4\u0391": 100.0, "TTF": 100.0, "\u039a\u03ad\u03c1\u03b4\u03bf\u03c2": 100.0}, {"x": 164.57142857142856, "label": "\u03a6\u03b5\u03b2 26", "MCP": 72.1, "\u03a4\u0391": 108.7, "\u0395\u03a4\u0391": 75.7, "TTF": 124.0, "\u039a\u03ad\u03c1\u03b4\u03bf\u03c2": 85.9}, {"x": 281.1428571428571, "label": "\u039c\u03b1\u03c1 26", "MCP": 87.4, "\u03a4\u0391": 105.8, "\u0395\u03a4\u0391": 94.9, "TTF": 117.0, "\u039a\u03ad\u03c1\u03b4\u03bf\u03c2": 88.5}, {"x": 397.7142857142857, "label": "\u0391\u03c0\u03c1 26", "MCP": 81.6, "\u03a4\u0391": 133.1, "\u0395\u03a4\u0391": 91.1, "TTF": 190.8, "\u039a\u03ad\u03c1\u03b4\u03bf\u03c2": 78.2}, {"x": 514.2857142857142, "label": "\u039c\u03ac\u03b9 26", "MCP": 81.9, "\u03a4\u0391": 122.0, "\u0395\u03a4\u0391": 91.9, "TTF": 161.7, "\u039a\u03ad\u03c1\u03b4\u03bf\u03c2": 81.6}, {"x": 630.8571428571429, "label": "\u0399\u03bf\u03c5\u03bd 26", "MCP": 85.5, "\u03a4\u0391": 125.5, "\u0395\u03a4\u0391": 92.9, "TTF": 170.6, "\u039a\u03ad\u03c1\u03b4\u03bf\u03c2": 81.9}, {"x": 747.4285714285714, "label": "\u0399\u03bf\u03c5\u03bb 26", "MCP": 101.2, "\u03a4\u0391": 122.1, "\u0395\u03a4\u0391": 105.2, "TTF": 163.2, "\u039a\u03ad\u03c1\u03b4\u03bf\u03c2": 87.3}, {"x": 864.0, "label": "\u0391\u03c5\u03b3 26", "MCP": 121.5, "\u03a4\u0391": 134.0, "\u0395\u03a4\u0391": 127.9, "TTF": 195.5, "\u039a\u03ad\u03c1\u03b4\u03bf\u03c2": 77.3}]' data-series='["MCP", "\u03a4\u0391", "\u0395\u03a4\u0391", "TTF", "\u039a\u03ad\u03c1\u03b4\u03bf\u03c2"]' />
+  </svg>
+  <div class="viz-tooltip" hidden></div>
+  <div class="viz-crosshair" hidden></div>
+</div>
+
+      <table class="viz-table" hidden><thead><tr><th>Μήνας</th><th>MCP</th><th>ΤΑ</th><th>ΕΤΑ</th><th>TTF</th><th>Κέρδος</th></tr></thead><tbody><tr><td>Ιαν 26</td><td>108.7</td><td>155.7</td><td>115.5</td><td>27.6</td><td>60,468.1</td></tr><tr><td>Φεβ 26</td><td>78.3</td><td>169.3</td><td>87.5</td><td>34.2</td><td>51,966.7</td></tr><tr><td>Μαρ 26</td><td>95.0</td><td>164.8</td><td>109.7</td><td>32.2</td><td>53,497.5</td></tr><tr><td>Απρ 26</td><td>88.7</td><td>207.3</td><td>105.2</td><td>52.6</td><td>47,262.7</td></tr><tr><td>Μάι 26</td><td>89.0</td><td>190.1</td><td>106.2</td><td>44.6</td><td>49,325.4</td></tr><tr><td>Ιουν 26</td><td>92.9</td><td>195.5</td><td>107.3</td><td>47.0</td><td>49,548.0</td></tr><tr><td>Ιουλ 26</td><td>110.0</td><td>190.2</td><td>121.6</td><td>45.0</td><td>52,774.6</td></tr><tr><td>Αυγ 26</td><td>132.1</td><td>208.8</td><td>147.8</td><td>53.9</td><td>46,718.5</td></tr></tbody></table>
+    </div>
+
+    <div class="viz-card">
+      <div class="viz-card-head">
+        <h2 class="viz-card-title">TTF vs Κέρδος</h2>
+        <button class="viz-toggle" type="button">Πίνακας</button>
+      </div>
+      
+<div class="viz-chart-wrap" data-chart="scatter">
+  <svg viewBox="0 0 880 300" class="viz-svg" role="img" aria-label="Συσχέτιση TTF €/MWh - Κέρδος €">
+    <line class="viz-grid" x1="56" y1="16.0" x2="864" y2="16.0" /><text class="viz-axis-label" x="48" y="20.0" text-anchor="end">61,843</text><line class="viz-grid" x1="56" y1="79.0" x2="864" y2="79.0" /><text class="viz-axis-label" x="48" y="83.0" text-anchor="end">57,718</text><line class="viz-grid" x1="56" y1="142.0" x2="864" y2="142.0" /><text class="viz-axis-label" x="48" y="146.0" text-anchor="end">53,593</text><line class="viz-grid" x1="56" y1="205.0" x2="864" y2="205.0" /><text class="viz-axis-label" x="48" y="209.0" text-anchor="end">49,468</text><line class="viz-grid" x1="56" y1="268.0" x2="864" y2="268.0" /><text class="viz-axis-label" x="48" y="272.0" text-anchor="end">45,344</text><text class="viz-axis-label" x="56.0" y="292" text-anchor="middle">25</text><text class="viz-axis-label" x="258.0" y="292" text-anchor="middle">33</text><text class="viz-axis-label" x="460.0" y="292" text-anchor="middle">41</text><text class="viz-axis-label" x="662.0" y="292" text-anchor="middle">49</text><text class="viz-axis-label" x="864.0" y="292" text-anchor="middle">57</text>
+    <line class="viz-trendline" x1="56.0" y1="68.8" x2="864.0" y2="263.5" />
+    <circle class="viz-scatter-dot" cx="123.3" cy="37.0" r="6" data-label="Ιαν 26" data-x="27.57" data-y="60468.08" data-x-unit="TTF €/MWh" data-y-unit="Κέρδος €" tabindex="0" /><circle class="viz-scatter-dot" cx="292.6" cy="166.8" r="6" data-label="Φεβ 26" data-x="34.19" data-y="51966.72" data-x-unit="TTF €/MWh" data-y-unit="Κέρδος €" tabindex="0" /><circle class="viz-scatter-dot" cx="243.0" cy="143.5" r="6" data-label="Μαρ 26" data-x="32.25" data-y="53497.55" data-x-unit="TTF €/MWh" data-y-unit="Κέρδος €" tabindex="0" /><circle class="viz-scatter-dot" cx="763.4" cy="238.7" r="6" data-label="Απρ 26" data-x="52.60" data-y="47262.70" data-x-unit="TTF €/MWh" data-y-unit="Κέρδος €" tabindex="0" /><circle class="viz-scatter-dot" cx="558.6" cy="207.2" r="6" data-label="Μάι 26" data-x="44.59" data-y="49325.41" data-x-unit="TTF €/MWh" data-y-unit="Κέρδος €" tabindex="0" /><circle class="viz-scatter-dot" cx="621.2" cy="203.8" r="6" data-label="Ιουν 26" data-x="47.04" data-y="49548.02" data-x-unit="TTF €/MWh" data-y-unit="Κέρδος €" tabindex="0" /><circle class="viz-scatter-dot" cx="568.8" cy="154.5" r="6" data-label="Ιουλ 26" data-x="44.99" data-y="52774.61" data-x-unit="TTF €/MWh" data-y-unit="Κέρδος €" tabindex="0" /><circle class="viz-scatter-dot" cx="796.7" cy="247.0" r="6" data-label="Αυγ 26" data-x="53.90" data-y="46718.53" data-x-unit="TTF €/MWh" data-y-unit="Κέρδος €" tabindex="0" />
+    <text class="viz-r-label" x="864" y="30" text-anchor="end">r = -0.89</text>
+  </svg>
+  <div class="viz-tooltip" hidden></div>
+</div>
+
+      <table class="viz-table" hidden><thead><tr><th>Μήνας</th><th>TTF (€/MWh)</th><th>Κέρδος (€)</th></tr></thead><tbody><tr><td>Ιαν 26</td><td>27.57</td><td>60,468</td></tr><tr><td>Φεβ 26</td><td>34.19</td><td>51,967</td></tr><tr><td>Μαρ 26</td><td>32.25</td><td>53,498</td></tr><tr><td>Απρ 26</td><td>52.60</td><td>47,263</td></tr><tr><td>Μάι 26</td><td>44.59</td><td>49,325</td></tr><tr><td>Ιουν 26</td><td>47.04</td><td>49,548</td></tr><tr><td>Ιουλ 26</td><td>44.99</td><td>52,775</td></tr><tr><td>Αυγ 26</td><td>53.90</td><td>46,719</td></tr></tbody></table>
+    </div>
+
+    <div class="viz-card">
+      <div class="viz-card-head">
+        <h2 class="viz-card-title">Μέσοι όροι &amp; συσχετίσεις</h2>
+      </div>
+      <div class="viz-summary-grid">
+        <table class="viz-table"><thead><tr><th>Μέγεθος</th><th>Μέσος όρος</th></tr></thead><tbody><tr><td>MCP</td><td>99.33 €/MWh</td></tr><tr><td>ΤΑ</td><td>185.21 €/MWh</td></tr><tr><td>ΕΤΑ</td><td>112.60 €/MWh</td></tr><tr><td>TTF</td><td>42.14 €/MWh</td></tr><tr><td>ΜΤΦΑ</td><td>65.41 €/MWh</td></tr><tr><td>Margin</td><td>73.94 €/MWh</td></tr><tr><td>Κέρδος</td><td>51,445.20 €</td></tr></tbody></table>
+        <table class="viz-table"><thead><tr><th>Ζεύγος</th><th>r (Pearson)</th><th>n</th></tr></thead><tbody><tr><td>TTF ↔ Κέρδος</td><td>-0.89</td><td>8</td></tr><tr><td>TTF ↔ MCP</td><td>0.28</td><td>8</td></tr><tr><td>TTF ↔ ΜΤΦΑ</td><td>1.00</td><td>8</td></tr><tr><td>MCP ↔ Κέρδος</td><td>0.00</td><td>8</td></tr></tbody></table>
+      </div>
+      <p class="viz-footer">Το ΜΤΦΑ συσχετίζεται σχεδόν τέλεια με το TTF (r ≈ 1) — ουσιαστικά το ίδιο σήμα, διαφορετική κλιμάκωση.</p>
     </div>
 
     <p class="viz-footer">Τύπος: MCP + ΤΑ − ΕΤΑ − (TTF / 0.43), μονάδα 1 MW. Πηγή: <a href="https://github.com/VaGlar/EnEx-WebScraping">EnEx-WebScraping</a>.</p>
@@ -223,14 +288,93 @@ function initBarChart(wrap) {
   });
 }
 
+function initMultiLineChart(wrap) {
+  const svg = wrap.querySelector('svg');
+  const hit = wrap.querySelector('.viz-hit-rect');
+  const tooltip = wrap.querySelector('.viz-tooltip');
+  const crosshair = wrap.querySelector('.viz-crosshair');
+  if (!hit) return;
+  const points = JSON.parse(hit.getAttribute('data-points'));
+  const names = JSON.parse(hit.getAttribute('data-series'));
+  function nearest(mx) {
+    let best = points[0], bestDist = Infinity;
+    for (const p of points) {
+      const d = Math.abs(p.x - mx);
+      if (d < bestDist) { best = p; bestDist = d; }
+    }
+    return best;
+  }
+  function onMove(evt) {
+    const rect = svg.getBoundingClientRect();
+    const scaleX = svg.viewBox.baseVal.width / rect.width;
+    const mx = (evt.clientX - rect.left) * scaleX;
+    const p = nearest(mx);
+    const wrapRect = wrap.getBoundingClientRect();
+    const px = (p.x / svg.viewBox.baseVal.width) * wrapRect.width;
+    crosshair.style.left = px + 'px';
+    crosshair.style.height = wrapRect.height + 'px';
+    crosshair.hidden = false;
+    tooltip.innerHTML = '';
+    const head = document.createElement('div');
+    head.appendChild(Object.assign(document.createElement('strong'), {textContent: p.label}));
+    tooltip.appendChild(head);
+    names.forEach((name, i) => {
+      const row = document.createElement('div');
+      row.textContent = name + ': ' + p[name].toFixed(1);
+      tooltip.appendChild(row);
+    });
+    tooltip.hidden = false;
+    let left = px + 12;
+    if (left + 160 > wrapRect.width) left = px - 172;
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = '8px';
+  }
+  function onLeave() { tooltip.hidden = true; crosshair.hidden = true; }
+  hit.addEventListener('pointermove', onMove);
+  hit.addEventListener('pointerleave', onLeave);
+}
+
+function initScatterChart(wrap) {
+  const tooltip = wrap.querySelector('.viz-tooltip');
+  const dots = wrap.querySelectorAll('.viz-scatter-dot');
+  dots.forEach(dot => {
+    function show() {
+      const wrapRect = wrap.getBoundingClientRect();
+      const dotRect = dot.getBoundingClientRect();
+      tooltip.innerHTML = '';
+      const strong = document.createElement('strong');
+      const x = parseFloat(dot.getAttribute('data-x'));
+      const y = parseFloat(dot.getAttribute('data-y'));
+      strong.textContent = dot.getAttribute('data-label');
+      const rowX = document.createElement('div');
+      rowX.textContent = dot.getAttribute('data-x-unit') + ': ' + x.toFixed(1);
+      const rowY = document.createElement('div');
+      rowY.textContent = dot.getAttribute('data-y-unit') + ': ' + y.toLocaleString('el-GR', {maximumFractionDigits: 0});
+      tooltip.appendChild(strong);
+      tooltip.appendChild(rowX);
+      tooltip.appendChild(rowY);
+      tooltip.hidden = false;
+      tooltip.style.left = (dotRect.left - wrapRect.left + 10) + 'px';
+      tooltip.style.top = (dotRect.top - wrapRect.top - 8) + 'px';
+    }
+    dot.addEventListener('pointerenter', show);
+    dot.addEventListener('focus', show);
+    dot.addEventListener('pointerleave', () => tooltip.hidden = true);
+    dot.addEventListener('blur', () => tooltip.hidden = true);
+  });
+}
+
 document.querySelectorAll('[data-chart="line"]').forEach(initLineChart);
 document.querySelectorAll('[data-chart="bar"]').forEach(initBarChart);
+document.querySelectorAll('[data-chart="multiline"]').forEach(initMultiLineChart);
+document.querySelectorAll('[data-chart="scatter"]').forEach(initScatterChart);
 
 document.querySelectorAll('.viz-toggle').forEach(btn => {
   btn.addEventListener('click', () => {
     const card = btn.closest('.viz-card');
     const chart = card.querySelector('.viz-chart-wrap');
     const table = card.querySelector('.viz-table');
+    if (!chart || !table) return;
     const nowShowingTable = chart.hidden;
     chart.hidden = !nowShowingTable;
     table.hidden = nowShowingTable;

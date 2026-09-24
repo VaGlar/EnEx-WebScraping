@@ -9,6 +9,9 @@ reference price) are monthly constants supplied in ``data/monthly_prices.csv``.
 TTF is a gas price (EUR/MWh gas), so it's divided by the plant's efficiency
 to express it as a fuel cost per MWh of electricity produced.
 
+``monthly_prices.csv`` also carries MTFA (Μέση Τιμή Φυσικού Αερίου) for
+reference/correlation purposes - it doesn't feed into the margin formula.
+
 Monthly profit sums that margin over every hour on record for the month,
 scaled by the plant's capacity and its assumed availability factor (it
 doesn't run every hour of every day - see config.AVAILABILITY_FACTOR).
@@ -27,7 +30,8 @@ from .config import (
     PLANT_EFFICIENCY,
 )
 
-MONTHLY_PRICE_COLUMNS = ["month", "ta", "eta", "ttf"]
+MONTHLY_PRICE_COLUMNS = ["month", "ta", "eta", "ttf", "mtfa"]
+REQUIRED_MONTHLY_PRICE_COLUMNS = ["ta", "eta", "ttf"]
 
 
 class MissingMonthlyPrices(Exception):
@@ -35,7 +39,7 @@ class MissingMonthlyPrices(Exception):
 
 
 def load_monthly_prices(path: Path = MONTHLY_PRICES_FILE) -> pd.DataFrame:
-    """Load the monthly TA/ETA/TTF reference prices (EUR/MWh each)."""
+    """Load the monthly TA/ETA/TTF/MTFA reference prices (EUR/MWh each)."""
     if not path.exists():
         return pd.DataFrame({col: pd.Series(dtype="object" if col == "month" else "float64")
                               for col in MONTHLY_PRICE_COLUMNS})
@@ -77,12 +81,12 @@ def compute_monthly_profit(
         )
 
     relevant_prices = monthly_prices[monthly_prices["month"].isin(data_months)]
-    incomplete_mask = relevant_prices[["ta", "eta", "ttf"]].isna().any(axis=1)
+    incomplete_mask = relevant_prices[REQUIRED_MONTHLY_PRICE_COLUMNS].isna().any(axis=1)
     incomplete = relevant_prices[incomplete_mask]
 
     skipped = []
     for _, row in incomplete.iterrows():
-        blank_fields = [c for c in ("ta", "eta", "ttf") if pd.isna(row[c])]
+        blank_fields = [c for c in REQUIRED_MONTHLY_PRICE_COLUMNS if pd.isna(row[c])]
         skipped.append(f"{row['month']} (missing: {', '.join(blank_fields)})")
 
     complete_prices = relevant_prices[~incomplete_mask]
