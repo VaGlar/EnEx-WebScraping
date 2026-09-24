@@ -44,15 +44,25 @@ def load_monthly_prices(path: Path = MONTHLY_PRICES_FILE) -> pd.DataFrame:
     return df[MONTHLY_PRICE_COLUMNS]
 
 
-def compute_monthly_profit(mcp_df: pd.DataFrame, monthly_prices: pd.DataFrame) -> pd.DataFrame:
+def compute_monthly_profit(
+    mcp_df: pd.DataFrame, monthly_prices: pd.DataFrame
+) -> tuple[pd.DataFrame, list[str]]:
     """Compute monthly profit (EUR) for the plant from hourly MCP data.
 
     ``mcp_df`` needs ``date``, ``hour``, ``mcp`` columns (as returned by
-    :func:`enex_dam.storage.load_data`). Returns one row per month with the
-    total profit and the average per-MWh margin.
+    :func:`enex_dam.storage.load_data`). Returns a ``(result, skipped)``
+    tuple: ``result`` has one row per *complete* month (total profit and
+    average per-MWh margin), and ``skipped`` lists the months that were
+    left out along with which field(s) are still missing for them - the
+    caller decides whether that's worth surfacing as a warning or an error.
+
+    Raises :class:`MissingMonthlyPrices` only when a month has no row at
+    all in ``monthly_prices`` (as opposed to a row with some blank
+    cells) - that's a month nobody has started pricing yet, which is
+    worth failing loudly on rather than silently skipping.
     """
     if mcp_df.empty:
-        return pd.DataFrame(columns=["month", "hours", "avg_margin_eur_per_mwh", "profit_eur"])
+        return pd.DataFrame(columns=["month", "hours", "avg_margin_eur_per_mwh", "profit_eur"]), []
 
     df = mcp_df.copy()
     df["month"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m")
@@ -67,18 +77,21 @@ def compute_monthly_profit(mcp_df: pd.DataFrame, monthly_prices: pd.DataFrame) -
         )
 
     relevant_prices = monthly_prices[monthly_prices["month"].isin(data_months)]
-    incomplete = relevant_prices[relevant_prices[["ta", "eta", "ttf"]].isna().any(axis=1)]
-    if not incomplete.empty:
-        details = []
-        for _, row in incomplete.iterrows():
-            blank_fields = [c for c in ("ta", "eta", "ttf") if pd.isna(row[c])]
-            details.append(f"{row['month']} (missing: {', '.join(blank_fields)})")
-        raise MissingMonthlyPrices(
-            f"Incomplete TA/ETA/TTF prices for month(s): {'; '.join(details)}. "
-            f"Fill them in {MONTHLY_PRICES_FILE}."
-        )
+    incomplete_mask = relevant_prices[["ta", "eta", "ttf"]].isna().any(axis=1)
+    incomplete = relevant_prices[incomplete_mask]
 
-    merged = df.merge(monthly_prices, on="month", how="left")
+    skipped = []
+    for _, row in incomplete.iterrows():
+        blank_fields = [c for c in ("ta", "eta", "ttf") if pd.isna(row[c])]
+        skipped.append(f"{row['month']} (missing: {', '.join(blank_fields)})")
+
+    complete_prices = relevant_prices[~incomplete_mask]
+    df = df[~df["month"].isin(incomplete["month"])]
+
+    if df.empty:
+        return pd.DataFrame(columns=["month", "hours", "avg_margin_eur_per_mwh", "profit_eur"]), skipped
+
+    merged = df.merge(complete_prices, on="month", how="left")
     merged["margin"] = (
         merged["mcp"] + merged["ta"] - merged["eta"] - merged["ttf"] / PLANT_EFFICIENCY
     )
@@ -93,4 +106,4 @@ def compute_monthly_profit(mcp_df: pd.DataFrame, monthly_prices: pd.DataFrame) -
         * PLANT_CAPACITY_MW
         * AVAILABILITY_FACTOR
     )
-    return grouped.sort_values("month").reset_index(drop=True)
+    return grouped.sort_values("month").reset_index(drop=True), skipped

@@ -17,8 +17,9 @@ def test_compute_monthly_profit_matches_formula():
         {"month": ["2026-01"], "ta": [10.0], "eta": [5.0], "ttf": [30.0]}
     )
 
-    result = compute_monthly_profit(mcp_df, monthly_prices)
+    result, skipped = compute_monthly_profit(mcp_df, monthly_prices)
 
+    assert skipped == []
     assert list(result["month"]) == ["2026-01"]
     assert result["hours"].iloc[0] == 2
 
@@ -41,21 +42,37 @@ def test_compute_monthly_profit_raises_on_missing_month():
         compute_monthly_profit(mcp_df, monthly_prices)
 
 
-def test_compute_monthly_profit_raises_on_incomplete_month():
-    mcp_df = pd.DataFrame({"date": ["2026-01-01"], "hour": [0], "mcp": [100.0]})
-    # Row exists for the month, but eta is blank (NaN) - should still be caught.
+def test_compute_monthly_profit_skips_incomplete_month_without_raising():
+    mcp_df = pd.DataFrame(
+        {
+            "date": ["2026-01-01", "2026-02-01"],
+            "hour": [0, 0],
+            "mcp": [100.0, 100.0],
+        }
+    )
+    # January is complete; February exists but eta is blank.
     monthly_prices = pd.DataFrame(
-        {"month": ["2026-01"], "ta": [10.0], "eta": [None], "ttf": [30.0]}
+        {
+            "month": ["2026-01", "2026-02"],
+            "ta": [10.0, 10.0],
+            "eta": [5.0, None],
+            "ttf": [30.0, 30.0],
+        }
     )
 
-    with pytest.raises(MissingMonthlyPrices, match="eta"):
-        compute_monthly_profit(mcp_df, monthly_prices)
+    result, skipped = compute_monthly_profit(mcp_df, monthly_prices)
+
+    assert list(result["month"]) == ["2026-01"]
+    assert len(skipped) == 1
+    assert "2026-02" in skipped[0]
+    assert "eta" in skipped[0]
 
 
 def test_compute_monthly_profit_empty_input():
     mcp_df = pd.DataFrame(columns=["date", "hour", "mcp"])
     monthly_prices = pd.DataFrame(columns=["month", "ta", "eta", "ttf"])
 
-    result = compute_monthly_profit(mcp_df, monthly_prices)
+    result, skipped = compute_monthly_profit(mcp_df, monthly_prices)
 
     assert result.empty
+    assert skipped == []

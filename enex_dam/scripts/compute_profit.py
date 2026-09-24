@@ -31,13 +31,18 @@ def main(argv: list[str] | None = None) -> int:
     monthly_prices = load_monthly_prices()
 
     try:
-        result = compute_monthly_profit(mcp_df, monthly_prices)
+        result, skipped = compute_monthly_profit(mcp_df, monthly_prices)
     except MissingMonthlyPrices as exc:
         logger.error("%s", exc)
         return 1
 
+    if skipped:
+        logger.warning("Skipped month(s) with incomplete TA/ETA/TTF prices:")
+        for entry in skipped:
+            logger.warning("  %s", entry)
+
     if result.empty:
-        logger.info("No data available yet.")
+        logger.info("No complete months to report yet.")
         return 0
 
     print(result.to_string(index=False, formatters={
