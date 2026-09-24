@@ -17,6 +17,7 @@ enex_dam/
   storage.py        # load/merge/save του dataset ως CSV
   completeness.py   # εντοπισμός ελλιπών/λειπόντων ημερομηνιών
   economics.py       # υπολογισμός μηνιαίων κερδών μηχανής (βλ. παρακάτω)
+  dashboard.py        # παραγωγή του στατικού HTML dashboard (βλ. παρακάτω)
   logging_config.py # κοινή ρύθμιση logging (αρχείο + κονσόλα)
   scripts/
     bulk_download.py  # μαζική λήψη για εύρος ημερομηνιών
@@ -24,9 +25,12 @@ enex_dam/
     check_missing.py  # έλεγχος πληρότητας dataset
     manual_insert.py  # διαδραστική εισαγωγή συγκεκριμένων ημερομηνιών
     compute_profit.py # υπολογισμός & εκτύπωση μηνιαίων κερδών
+    build_dashboard.py # παράγει το docs/index.html
 data/
   mcp_full.csv       # το dataset (date, hour, mcp), ενημερώνεται αυτόματα
   monthly_prices.csv # μηνιαίες τιμές ΤΑ/ΕΤΑ/TTF (χειροκίνητη ενημέρωση)
+docs/
+  index.html          # το dashboard, ενημερώνεται αυτόματα, σερβίρεται από GitHub Pages
 tests/               # pytest unit tests (χωρίς πραγματικά network calls)
 .github/workflows/
   daily_update.yml   # καθημερινό cron που τρέχει το daily_update + commit
@@ -52,6 +56,9 @@ python -m enex_dam.scripts.manual_insert
 
 # Υπολογισμός μηνιαίων κερδών μηχανής
 python -m enex_dam.scripts.compute_profit
+
+# Παραγωγή/ενημέρωση του dashboard (docs/index.html)
+python -m enex_dam.scripts.build_dashboard
 ```
 
 Για development/tests:
@@ -104,6 +111,24 @@ margin (€/MWh ρεύματος) = MCP + ΤΑ - ΕΤΑ - (TTF / 0,43)
 `--out FILE.csv`. Αν λείπει κάποιος μήνας από το `monthly_prices.csv`, το
 script σταματά με σαφές μήνυμα σφάλματος αντί να υπολογίσει λάθος νούμερο.
 
+## 📊 Dashboard
+
+`python -m enex_dam.scripts.build_dashboard` παράγει ένα αυτόνομο στατικό HTML
+(`docs/index.html`, χωρίς εξωτερικά assets/CDN) με:
+- στατιστικά tiles (τελευταία μέση MCP, συνολικό κέρδος, μέσο margin, ελλιπείς μέρες)
+- γράφημα ημερήσιας μέσης τιμής MCP (line chart, hover tooltip + crosshair)
+- γράφημα μηνιαίου κέρδους μηχανής (bar chart, hover tooltip)
+- εναλλαγή γράφημα/πίνακας σε κάθε κάρτα, dark mode (`prefers-color-scheme`)
+
+Ενημερώνεται αυτόματα σε κάθε τρέξιμο του `daily_update.yml` και του
+`backfill.yml`, οπότε το `docs/index.html` μένει πάντα συγχρονισμένο με το
+`data/mcp_full.csv`.
+
+**Ενεργοποίηση GitHub Pages (μία φορά, χειροκίνητα):** στο repo, **Settings →
+Pages → Build and deployment → Source: "Deploy from a branch"**, branch
+`main`, folder `/docs`, **Save**. Μετά το πρώτο deploy, το dashboard είναι
+διαθέσιμο στο `https://vaglar.github.io/EnEx-WebScraping/`.
+
 ## 🗓️ Πληρότητα δεδομένων
 
 Κάθε ημερομηνία αναμένεται να έχει 24 ωριαίες εγγραφές, με γνωστές εξαιρέσεις
@@ -119,7 +144,7 @@ script σταματά με σαφές μήνυμα σφάλματος αντί �
 - [x] Tests χωρίς πραγματικά network calls (mocked HTTP)
 - [x] Αυτοματοποίηση μέσω GitHub Actions (χωρίς Google Drive)
 - [x] Υπολογισμός μηνιαίων κερδών μηχανής (MCP+ΤΑ-ΕΤΑ-TTF/απόδοση)
-- [ ] Οπτικοποίηση δεδομένων MCP (π.χ. γράφημα ιστορικού ανά ημέρα/ώρα)
+- [x] Οπτικοποίηση δεδομένων MCP + μηνιαίου κέρδους (static dashboard, GitHub Pages)
 - [ ] Ανάλυση στατιστικών (μέσος όρος/διακύμανση ανά μήνα, peak/off-peak)
 - [ ] Ειδοποιήσεις (π.χ. Slack/email) σε περίπτωση σφάλματος ή ελλείψεων
 - [ ] Αρχειοθέτηση των ωμών DAM xlsx αρχείων (όχι μόνο των ωριαίων μέσων όρων)
