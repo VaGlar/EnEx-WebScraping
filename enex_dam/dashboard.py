@@ -21,10 +21,12 @@ from .config import PLANT_CAPACITY_MW, PLANT_EFFICIENCY
 METRIC_LABELS = {
     "avg_mcp": "MCP", "ta": "ΤΑ", "eta": "ΕΤΑ", "ttf": "TTF",
     "mtfa": "ΜΤΦΑ", "avg_margin_eur_per_mwh": "Margin", "profit_eur": "Κέρδος",
+    "revenue_side": "MCP+ΤΑ-ΕΤΑ", "breakeven_ttf": "Breakeven TTF",
 }
 METRIC_UNITS = {
     "avg_mcp": "€/MWh", "ta": "€/MWh", "eta": "€/MWh", "ttf": "€/MWh",
     "mtfa": "€/MWh", "avg_margin_eur_per_mwh": "€/MWh", "profit_eur": "€",
+    "revenue_side": "€/MWh", "breakeven_ttf": "€/MWh",
 }
 
 MONTH_LABELS_EL = {
@@ -46,7 +48,7 @@ def _month_label(month: str) -> str:
     return f"{MONTH_LABELS_EL.get(mm, mm)} {year[2:]}"
 
 
-def _svg_line_chart(points: list[tuple[str, float]], width=880, height=260) -> str:
+def _svg_line_chart(points: list[tuple[str, float]], width=1200, height=300) -> str:
     if not points:
         return '<p class="viz-empty">Δεν υπάρχουν ακόμα δεδομένα.</p>'
 
@@ -115,7 +117,7 @@ def _svg_line_chart(points: list[tuple[str, float]], width=880, height=260) -> s
 """
 
 
-def _svg_bar_chart(bars: list[tuple[str, float]], width=880, height=260, unit="€") -> str:
+def _svg_bar_chart(bars: list[tuple[str, float]], width=1200, height=300, unit="€") -> str:
     if not bars:
         return '<p class="viz-empty">Δεν υπάρχουν ακόμα πλήρεις μήνες.</p>'
 
@@ -178,9 +180,21 @@ SERIES_VARS = ["--series-1", "--series-2", "--series-3", "--series-4", "--series
 
 
 def _svg_multiline_chart(
-    series: list[tuple[str, list[tuple[str, float]]]], width=880, height=300
+    series: list[tuple[str, list[tuple[str, float]]]],
+    width=1200,
+    height=320,
+    indexed: bool = True,
+    fill_between: tuple[str, str] | None = None,
+    unit: str = "",
 ) -> str:
-    """Multiple series indexed to 100 at their first point, sharing one x-axis of labels."""
+    """Multiple series sharing one x-axis of labels and one y-axis.
+
+    When ``indexed`` (the default), every series is rescaled to 100 at its
+    first point, so series with unrelated units/scales can share an axis.
+    Set ``indexed=False`` when the series already share a unit (e.g. two
+    prices in €/MWh) and the actual values matter. ``fill_between`` shades
+    the area between two named series (e.g. a headroom/cushion band).
+    """
     if not series or not series[0][1]:
         return '<p class="viz-empty">Δεν υπάρχουν ακόμα δεδομένα.</p>'
 
@@ -191,12 +205,15 @@ def _svg_multiline_chart(
     plot_w = width - pad_l - pad_r
     plot_h = height - pad_t - pad_b
 
-    indexed_series = []
-    for name, points in series:
-        base = points[0][1] or 1
-        indexed_series.append((name, [(label, v / base * 100) for label, v in points]))
+    if indexed:
+        plotted_series = []
+        for name, points in series:
+            base = points[0][1] or 1
+            plotted_series.append((name, [(label, v / base * 100) for label, v in points]))
+    else:
+        plotted_series = series
 
-    all_values = [v for _, points in indexed_series for _, v in points]
+    all_values = [v for _, points in plotted_series for _, v in points]
     y_min, y_max = min(all_values), max(all_values)
     if y_min == y_max:
         y_min -= 1
@@ -220,10 +237,11 @@ def _svg_multiline_chart(
             f'<line class="viz-grid" x1="{pad_l}" y1="{gy:.1f}" x2="{width - pad_r}" y2="{gy:.1f}" />'
             f'<text class="viz-axis-label" x="{pad_l - 8}" y="{gy + 4:.1f}" text-anchor="end">{val:,.0f}</text>'
         )
-    baseline_y = y_of(100)
-    grid_lines.append(
-        f'<line class="viz-baseline" x1="{pad_l}" y1="{baseline_y:.1f}" x2="{width - pad_r}" y2="{baseline_y:.1f}" stroke-dasharray="3,3" />'
-    )
+    if indexed:
+        baseline_y = y_of(100)
+        grid_lines.append(
+            f'<line class="viz-baseline" x1="{pad_l}" y1="{baseline_y:.1f}" x2="{width - pad_r}" y2="{baseline_y:.1f}" stroke-dasharray="3,3" />'
+        )
 
     x_labels = []
     label_idx = list(range(n)) if n <= 9 else sorted(set([0, n // 4, n // 2, (3 * n) // 4, n - 1]))
@@ -234,12 +252,25 @@ def _svg_multiline_chart(
             f'{html.escape(labels[i])}</text>'
         )
 
-    paths = []
+    coords_by_name = {}
+    for name, points in plotted_series:
+        coords_by_name[name] = [(x_of(i), y_of(v)) for i, (_, v) in enumerate(points)]
+
+    fill_el = ""
+    if fill_between and all(name in coords_by_name for name in fill_between):
+        top_name, bottom_name = fill_between
+        top = coords_by_name[top_name]
+        bottom = coords_by_name[bottom_name]
+        forward = " L ".join(f"{x:.1f},{y:.1f}" for x, y in top)
+        backward = " L ".join(f"{x:.1f},{y:.1f}" for x, y in reversed(bottom))
+        fill_el = f'<path class="viz-band" d="M {forward} L {backward} Z" />'
+
+    paths = [fill_el]
     legend_items = []
     per_month = [{"label": labels[i]} for i in range(n)]
-    for s_idx, (name, points) in enumerate(indexed_series):
+    for s_idx, (name, points) in enumerate(plotted_series):
         var = SERIES_VARS[s_idx % len(SERIES_VARS)]
-        coords = [(x_of(i), y_of(v)) for i, (_, v) in enumerate(points)]
+        coords = coords_by_name[name]
         path_d = "M " + " L ".join(f"{x:.1f},{y:.1f}" for x, y in coords)
         paths.append(f'<path class="viz-line" style="stroke:var({var})" d="{path_d}" />')
         ex, ey = coords[-1]
@@ -252,12 +283,13 @@ def _svg_multiline_chart(
 
     x_positions = [x_of(i) for i in range(n)]
     data_json = json.dumps([{"x": x_positions[i], **per_month[i]} for i in range(n)])
-    series_names = json.dumps([name for name, _ in indexed_series])
+    series_names = json.dumps([name for name, _ in plotted_series])
 
+    axis_label = "Δείκτης 100 = πρώτος μήνας" if indexed else unit
     return f"""
-<div class="viz-chart-wrap" data-chart="multiline">
+<div class="viz-chart-wrap" data-chart="multiline" data-unit="{html.escape(unit)}">
   <div class="viz-legend">{''.join(legend_items)}</div>
-  <svg viewBox="0 0 {width} {height}" class="viz-svg" role="img" aria-label="Δείκτης 100 = πρώτος μήνας, {', '.join(html.escape(name) for name, _ in series)}">
+  <svg viewBox="0 0 {width} {height}" class="viz-svg" role="img" aria-label="{html.escape(axis_label)}, {', '.join(html.escape(name) for name, _ in series)}">
     {''.join(grid_lines)}
     {''.join(paths)}
     {''.join(x_labels)}
@@ -281,7 +313,7 @@ def _linreg(xs: list[float], ys: list[float]) -> tuple[float, float]:
 
 
 def _svg_scatter_chart(
-    points: list[tuple[str, float, float]], x_unit: str, y_unit: str, r: float | None, width=880, height=300
+    points: list[tuple[str, float, float]], x_unit: str, y_unit: str, r: float | None, width=1200, height=320
 ) -> str:
     """points: list of (label, x, y). Draws a trendline and an r annotation if r is given."""
     if not points:
@@ -412,13 +444,13 @@ CSS = """
   color: var(--text-primary);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   min-height: 100vh;
-  padding: 24px 16px 48px;
+  padding: 24px clamp(16px, 4vw, 56px) 48px;
 }
-.viz-shell { max-width: 960px; margin: 0 auto; }
+.viz-shell { max-width: 1800px; margin: 0 auto; }
 .viz-header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
 .viz-title { font-size: 22px; font-weight: 600; margin: 0; }
 .viz-updated { font-size: 13px; color: var(--text-muted); }
-.viz-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.viz-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
 .viz-stat-tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
 .viz-stat-label { font-size: 12px; color: var(--text-secondary); }
 .viz-stat-value { font-size: 24px; font-weight: 600; margin-top: 4px; }
@@ -432,6 +464,7 @@ CSS = """
 .viz-svg { width: 100%; height: auto; display: block; }
 .viz-grid { stroke: var(--grid); stroke-width: 1; }
 .viz-baseline { stroke: var(--baseline); stroke-width: 1; }
+.viz-band { fill: var(--series-1); opacity: 0.08; stroke: none; }
 .viz-axis-label { fill: var(--text-muted); font-size: 11px; }
 .viz-line { fill: none; stroke: var(--series-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .viz-area { fill: var(--series-1); opacity: 0.10; }
@@ -541,6 +574,7 @@ function initMultiLineChart(wrap) {
   if (!hit) return;
   const points = JSON.parse(hit.getAttribute('data-points'));
   const names = JSON.parse(hit.getAttribute('data-series'));
+  const unit = wrap.getAttribute('data-unit') || '';
   function nearest(mx) {
     let best = points[0], bestDist = Infinity;
     for (const p of points) {
@@ -565,7 +599,7 @@ function initMultiLineChart(wrap) {
     tooltip.appendChild(head);
     names.forEach((name, i) => {
       const row = document.createElement('div');
-      row.textContent = name + ': ' + p[name].toFixed(1);
+      row.textContent = name + ': ' + p[name].toFixed(1) + (unit ? ' ' + unit : '');
       tooltip.appendChild(row);
     });
     tooltip.hidden = false;
@@ -683,6 +717,10 @@ def build_dashboard_html(mcp_df: pd.DataFrame, monthly_prices: pd.DataFrame) -> 
     trend_table = ""
     scatter_chart = ""
     scatter_table = ""
+    breakeven_chart = ""
+    breakeven_table = ""
+    revenue_scatter_chart = ""
+    revenue_scatter_table = ""
     averages_table = ""
     correlations_table = ""
     if not summary.empty:
@@ -705,6 +743,32 @@ def build_dashboard_html(mcp_df: pd.DataFrame, monthly_prices: pd.DataFrame) -> 
         scatter_table = _table_html(
             ["Μήνας", "TTF (€/MWh)", "Κέρδος (€)"],
             [[label, f"{x:.2f}", f"{y:,.0f}"] for label, x, y in scatter_points],
+        )
+
+        breakeven_series = [
+            (METRIC_LABELS["ttf"], list(zip(month_labels, summary["ttf"]))),
+            (METRIC_LABELS["breakeven_ttf"], list(zip(month_labels, summary["breakeven_ttf"]))),
+        ]
+        breakeven_chart = _svg_multiline_chart(
+            breakeven_series, indexed=False, unit="€/MWh",
+            fill_between=(METRIC_LABELS["breakeven_ttf"], METRIC_LABELS["ttf"]),
+        )
+        breakeven_table = _table_html(
+            ["Μήνας", "TTF (€/MWh)", "Breakeven TTF (€/MWh)", "Περιθώριο ασφαλείας (€/MWh)"],
+            [
+                [month_labels[i], f"{row.ttf:.2f}", f"{row.breakeven_ttf:.2f}", f"{row.breakeven_ttf - row.ttf:+.2f}"]
+                for i, row in enumerate(summary.itertuples())
+            ],
+        )
+
+        revenue_scatter_points = list(zip(month_labels, summary["ttf"], summary["revenue_side"]))
+        ttf_revenue_r = next((c["r"] for c in correlations if c["label"] == "TTF ↔ (MCP+ΤΑ-ΕΤΑ)"), None)
+        revenue_scatter_chart = _svg_scatter_chart(
+            revenue_scatter_points, "TTF €/MWh", "MCP+ΤΑ-ΕΤΑ €/MWh", ttf_revenue_r
+        )
+        revenue_scatter_table = _table_html(
+            ["Μήνας", "TTF (€/MWh)", "MCP+ΤΑ-ΕΤΑ (€/MWh)"],
+            [[label, f"{x:.2f}", f"{y:.2f}"] for label, x, y in revenue_scatter_points],
         )
 
         averages = column_averages(summary)
@@ -776,6 +840,25 @@ def build_dashboard_html(mcp_df: pd.DataFrame, monthly_prices: pd.DataFrame) -> 
       </div>
       {scatter_chart or '<p class="viz-empty">Δεν υπάρχουν ακόμα πλήρεις μήνες.</p>'}
       {scatter_table}
+    </div>
+
+    <div class="viz-card">
+      <div class="viz-card-head">
+        <h2 class="viz-card-title">Breakeven TTF</h2>
+        <button class="viz-toggle" type="button">Πίνακας</button>
+      </div>
+      {breakeven_chart or '<p class="viz-empty">Δεν υπάρχουν ακόμα πλήρεις μήνες.</p>'}
+      {breakeven_table}
+      <p class="viz-footer">Breakeven TTF = (MCP + ΤΑ − ΕΤΑ) × {PLANT_EFFICIENCY:.2f} — η τιμή αερίου στην οποία το margin μηδενίζεται. Η σκιασμένη περιοχή είναι το περιθώριο ασφαλείας· όσο πιο κοντά οι δύο γραμμές, τόσο πιο ευάλωτο το κέρδος σε άνοδο του TTF.</p>
+    </div>
+
+    <div class="viz-card">
+      <div class="viz-card-head">
+        <h2 class="viz-card-title">TTF vs (MCP+ΤΑ-ΕΤΑ)</h2>
+        <button class="viz-toggle" type="button">Πίνακας</button>
+      </div>
+      {revenue_scatter_chart or '<p class="viz-empty">Δεν υπάρχουν ακόμα πλήρεις μήνες.</p>'}
+      {revenue_scatter_table}
     </div>
 
     <div class="viz-card">
