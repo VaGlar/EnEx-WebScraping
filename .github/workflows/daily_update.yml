@@ -31,13 +31,35 @@ jobs:
       - name: Check for missing/incomplete days
         run: python -m enex_dam.scripts.check_missing || true
 
-      - name: Rebuild dashboard
-        run: python -m enex_dam.scripts.build_dashboard
-
-      - name: Commit updated dataset and dashboard
+      - name: Configure git identity
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/mcp_full.csv docs/index.html
+
+      # Commit the fetched prices before touching the dashboard, so a bug in
+      # (or missing input data for) the dashboard build can never again cost
+      # us a day's MCP data - see the 2026-10 outage, where a dashboard crash
+      # blocked this commit for several days in a row.
+      - name: Commit updated dataset
+        run: |
+          git add data/mcp_full.csv
           git diff --cached --quiet || git commit -m "chore: update DAM MCP data ($(date -u +%F))"
           git push
+
+      - name: Rebuild dashboard
+        id: dashboard
+        continue-on-error: true
+        run: python -m enex_dam.scripts.build_dashboard
+
+      - name: Commit updated dashboard
+        if: steps.dashboard.outcome == 'success'
+        run: |
+          git add docs/index.html
+          git diff --cached --quiet || git commit -m "chore: update dashboard ($(date -u +%F))"
+          git push
+
+      - name: Fail the run if the dashboard build failed
+        if: steps.dashboard.outcome == 'failure'
+        run: |
+          echo "::error::Dashboard build failed - MCP data was still committed, but docs/index.html is stale. See the 'Rebuild dashboard' step above."
+          exit 1

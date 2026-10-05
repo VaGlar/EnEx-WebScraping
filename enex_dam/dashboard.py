@@ -15,7 +15,7 @@ import pandas as pd
 
 from .analysis import column_averages, compute_correlations, monthly_summary
 from .completeness import find_incomplete_days
-from .economics import compute_monthly_profit
+from .economics import MONTHLY_PRICE_COLUMNS, compute_monthly_profit
 from .config import PLANT_CAPACITY_MW, PLANT_EFFICIENCY
 
 METRIC_LABELS = {
@@ -663,8 +663,34 @@ document.querySelectorAll('.viz-toggle').forEach(btn => {
 """
 
 
+def _with_placeholder_rows_for_unpriced_months(mcp_df: pd.DataFrame, monthly_prices: pd.DataFrame) -> pd.DataFrame:
+    """Pad monthly_prices with blank rows for any month present in mcp_df but absent
+    from monthly_prices entirely.
+
+    The dashboard is generated unattended by a daily cron job - it must never crash
+    just because this month's TA/ETA/TTF haven't been filled in yet (compute_monthly_profit
+    raises MissingMonthlyPrices for a month with *no* row at all, by design, since
+    that's meant to be a loud failure for compute_profit.py's human-facing CLI). Here
+    we turn "no row" into "a row with blank cells", which the normal
+    incomplete-month-skip path already handles gracefully.
+    """
+    if mcp_df.empty:
+        return monthly_prices
+    data_months = set(pd.to_datetime(mcp_df["date"]).dt.strftime("%Y-%m").unique())
+    priced_months = set(monthly_prices["month"])
+    missing = sorted(data_months - priced_months)
+    if not missing:
+        return monthly_prices
+    placeholder = pd.DataFrame({"month": missing})
+    for col in MONTHLY_PRICE_COLUMNS:
+        if col != "month":
+            placeholder[col] = pd.NA
+    return pd.concat([monthly_prices, placeholder[MONTHLY_PRICE_COLUMNS]], ignore_index=True)
+
+
 def build_dashboard_html(mcp_df: pd.DataFrame, monthly_prices: pd.DataFrame) -> str:
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    monthly_prices = _with_placeholder_rows_for_unpriced_months(mcp_df, monthly_prices)
 
     if mcp_df.empty:
         daily = pd.DataFrame(columns=["date_str", "mcp"])

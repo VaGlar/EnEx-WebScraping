@@ -43,3 +43,25 @@ def test_build_dashboard_html_reports_skipped_months():
 
     assert "2026-02" in result
     assert "eta" in result
+
+
+def test_build_dashboard_html_never_raises_for_a_month_with_no_price_row_at_all():
+    # Regression test: a month present in mcp_df but completely absent from
+    # monthly_prices.csv used to raise MissingMonthlyPrices and crash the whole
+    # unattended daily build, which in turn blocked the git commit of the day's
+    # MCP data (see 2026-10 outage). The dashboard must degrade gracefully instead.
+    mcp_df = pd.DataFrame(
+        {
+            "date": ["2026-01-01", "2026-10-01"],
+            "hour": [0, 0],
+            "mcp": [100.0, 90.0],
+        }
+    )
+    monthly_prices = pd.DataFrame(
+        {"month": ["2026-01"], "ta": [10.0], "eta": [5.0], "ttf": [30.0]}
+    )
+
+    result = build_dashboard_html(mcp_df, monthly_prices)
+
+    assert "<!doctype html>" in result
+    assert "2026-10" in result
