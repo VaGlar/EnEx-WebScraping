@@ -4,12 +4,12 @@ Per-hour margin (EUR/MWh electricity):
 
     margin = MCP + TA - ETA - (TTF / PLANT_EFFICIENCY)
 
-TA (Τιμή Αναφοράς), ETA (Ειδικό Τέλος Ανανεώσιμων) and TTF (natural gas
+TA (Reference Price), ETA (Special RES Levy) and TTF (natural gas
 reference price) are monthly constants supplied in ``data/monthly_prices.csv``.
 TTF is a gas price (EUR/MWh gas), so it's divided by the plant's efficiency
 to express it as a fuel cost per MWh of electricity produced.
 
-``monthly_prices.csv`` also carries MTFA (Μέση Τιμή Φυσικού Αερίου) for
+``monthly_prices.csv`` also carries MTFA (Average Natural Gas Price) for
 reference/correlation purposes - it doesn't feed into the margin formula.
 
 Monthly profit sums that margin over every hour on record for the month,
